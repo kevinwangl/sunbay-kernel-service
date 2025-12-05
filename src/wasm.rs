@@ -3,6 +3,21 @@ use crate::services::emv_processor::EmvProcessor;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 
+// Import console.log from JavaScript
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console)]
+    fn log(s: &str);
+    
+    #[wasm_bindgen(js_namespace = console, js_name = log)]
+    fn log_many(a: &str, b: &str);
+}
+
+// Macro for easier logging
+macro_rules! console_log {
+    ($($t:tt)*) => (log(&format_args!($($t)*).to_string()))
+}
+
 /// Initialize the EMV processor for WASM
 #[wasm_bindgen]
 pub struct WasmEmvProcessor {
@@ -53,6 +68,7 @@ impl WasmEmvProcessor {
     /// Create a new EMV processor
     #[wasm_bindgen(constructor)]
     pub fn new(country_code: String, currency_code: String) -> Self {
+        console_log!("[WASM Kernel] Initializing EMV processor (Country: {}, Currency: {})", country_code, currency_code);
         Self {
             processor: EmvProcessor::new(country_code, currency_code),
         }
@@ -61,7 +77,10 @@ impl WasmEmvProcessor {
     /// Select PPSE (Payment System Environment)
     #[wasm_bindgen(js_name = selectPpse)]
     pub fn select_ppse(&self) -> JsValue {
+        console_log!("[WASM Kernel] SELECT PPSE");
         let cmd = self.processor.select_ppse();
+        console_log!("[WASM Kernel] PPSE Command: CLA={:02X} INS={:02X} P1={:02X} P2={:02X}", 
+            cmd.cla, cmd.ins, cmd.p1, cmd.p2);
         let result: ApduCommandResult = cmd.into();
         serde_wasm_bindgen::to_value(&result).unwrap()
     }
@@ -69,10 +88,16 @@ impl WasmEmvProcessor {
     /// Select application by AID
     #[wasm_bindgen(js_name = selectApplication)]
     pub fn select_application(&self, aid_hex: String) -> Result<JsValue, JsValue> {
+        console_log!("[WASM Kernel] SELECT Application: AID={}", aid_hex);
         let aid = hex::decode(&aid_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid AID hex: {}", e)))?;
+            .map_err(|e| {
+                console_log!("[WASM Kernel] ERROR: Invalid AID hex: {}", e);
+                JsValue::from_str(&format!("Invalid AID hex: {}", e))
+            })?;
 
         let cmd = self.processor.select_application(&aid);
+        console_log!("[WASM Kernel] Application Command: CLA={:02X} INS={:02X} P1={:02X} P2={:02X}", 
+            cmd.cla, cmd.ins, cmd.p1, cmd.p2);
         let result: ApduCommandResult = cmd.into();
         Ok(serde_wasm_bindgen::to_value(&result).unwrap())
     }
@@ -80,7 +105,10 @@ impl WasmEmvProcessor {
     /// Read record from card
     #[wasm_bindgen(js_name = readRecord)]
     pub fn read_record(&self, sfi: u8, record: u8) -> JsValue {
+        console_log!("[WASM Kernel] READ RECORD: SFI={}, Record={}", sfi, record);
         let cmd = self.processor.read_record(sfi, record);
+        console_log!("[WASM Kernel] Read Command: CLA={:02X} INS={:02X} P1={:02X} P2={:02X}", 
+            cmd.cla, cmd.ins, cmd.p1, cmd.p2);
         let result: ApduCommandResult = cmd.into();
         serde_wasm_bindgen::to_value(&result).unwrap()
     }
@@ -88,10 +116,16 @@ impl WasmEmvProcessor {
     /// Get processing options
     #[wasm_bindgen(js_name = getProcessingOptions)]
     pub fn get_processing_options(&self, pdol_hex: String) -> Result<JsValue, JsValue> {
+        console_log!("[WASM Kernel] GET PROCESSING OPTIONS: PDOL={}", pdol_hex);
         let pdol_data = hex::decode(&pdol_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid PDOL hex: {}", e)))?;
+            .map_err(|e| {
+                console_log!("[WASM Kernel] ERROR: Invalid PDOL hex: {}", e);
+                JsValue::from_str(&format!("Invalid PDOL hex: {}", e))
+            })?;
 
         let cmd = self.processor.get_processing_options(&pdol_data);
+        console_log!("[WASM Kernel] GPO Command: CLA={:02X} INS={:02X} P1={:02X} P2={:02X}", 
+            cmd.cla, cmd.ins, cmd.p1, cmd.p2);
         let result: ApduCommandResult = cmd.into();
         Ok(serde_wasm_bindgen::to_value(&result).unwrap())
     }
@@ -99,10 +133,16 @@ impl WasmEmvProcessor {
     /// Generate AC (Application Cryptogram)
     #[wasm_bindgen(js_name = generateAc)]
     pub fn generate_ac(&self, ac_type: u8, cdol_hex: String) -> Result<JsValue, JsValue> {
+        console_log!("[WASM Kernel] GENERATE AC: Type={:02X}, CDOL={}", ac_type, cdol_hex);
         let cdol_data = hex::decode(&cdol_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid CDOL hex: {}", e)))?;
+            .map_err(|e| {
+                console_log!("[WASM Kernel] ERROR: Invalid CDOL hex: {}", e);
+                JsValue::from_str(&format!("Invalid CDOL hex: {}", e))
+            })?;
 
         let cmd = self.processor.generate_ac(ac_type, &cdol_data);
+        console_log!("[WASM Kernel] AC Command: CLA={:02X} INS={:02X} P1={:02X} P2={:02X}", 
+            cmd.cla, cmd.ins, cmd.p1, cmd.p2);
         let result: ApduCommandResult = cmd.into();
         Ok(serde_wasm_bindgen::to_value(&result).unwrap())
     }
@@ -110,14 +150,22 @@ impl WasmEmvProcessor {
     /// Parse card data from TLV response
     #[wasm_bindgen(js_name = parseCardData)]
     pub fn parse_card_data(&self, tlv_hex: String, aid: String) -> Result<JsValue, JsValue> {
+        console_log!("[WASM Kernel] PARSE CARD DATA: AID={}, TLV length={}", aid, tlv_hex.len());
         let tlv_data = hex::decode(&tlv_hex)
-            .map_err(|e| JsValue::from_str(&format!("Invalid TLV hex: {}", e)))?;
+            .map_err(|e| {
+                console_log!("[WASM Kernel] ERROR: Invalid TLV hex: {}", e);
+                JsValue::from_str(&format!("Invalid TLV hex: {}", e))
+            })?;
 
         let card_data = self
             .processor
             .parse_card_data(&tlv_data, aid)
-            .map_err(|e| JsValue::from_str(&e))?;
+            .map_err(|e| {
+                console_log!("[WASM Kernel] ERROR: Failed to parse card data: {}", e);
+                JsValue::from_str(&e)
+            })?;
 
+        console_log!("[WASM Kernel] Card data parsed successfully");
         Ok(serde_wasm_bindgen::to_value(&card_data).unwrap())
     }
 }
@@ -125,7 +173,9 @@ impl WasmEmvProcessor {
 /// Get the version of the kernel
 #[wasm_bindgen(js_name = getVersion)]
 pub fn get_version() -> String {
-    env!("CARGO_PKG_VERSION").to_string()
+    let version = env!("CARGO_PKG_VERSION").to_string();
+    console_log!("[WASM Kernel] Version: {}", version);
+    version
 }
 
 /// Initialize panic hook for better error messages
@@ -133,4 +183,6 @@ pub fn get_version() -> String {
 pub fn init() {
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
+    
+    console_log!("[WASM Kernel] Initialized successfully");
 }

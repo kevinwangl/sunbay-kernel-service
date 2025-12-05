@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [features]
-default = ["server"]
+default = []
 server = ["axum", "tokio", "tower", "tower-http", "config", "tracing-subscriber", "reqwest"]
 console_error_panic_hook = ["dep:console_error_panic_hook"]
 
@@ -28,6 +28,7 @@ tracing = "0.1"
 wasm-bindgen = "0.2"
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = { version = "0.1", optional = true }
+web-sys = { version = "0.3", features = ["console"] }
 
 # Server-only dependencies (optional)
 axum = { version = "0.7", features = ["multipart"], optional = true }

@@ -1,76 +1,49 @@
 #!/bin/bash
 
-# Build WASM kernel for sunbay-kernel-service
-# This script compiles the Rust code to WebAssembly
+# Build WASM kernel with wasm-pack
+# This generates proper JavaScript bindings for console.log and other web APIs
 
 set -e
 
-echo "==========================================="
-echo "Building WASM Kernel"
-echo "==========================================="
-echo ""
+echo "=========================================="
+echo "Building WASM Kernel with wasm-pack"
+echo "=========================================="
 
-# Check if wasm32-unknown-unknown target is installed
-if ! rustup target list | grep -q "wasm32-unknown-unknown (installed)"; then
-    echo "📦 Installing wasm32-unknown-unknown target..."
-    rustup target add wasm32-unknown-unknown
+# Check if wasm-pack is installed
+if ! command -v wasm-pack &> /dev/null; then
+    echo "❌ wasm-pack not found. Installing..."
+    cargo install wasm-pack
 fi
 
-# Check if wasm-bindgen-cli is installed
-if ! command -v wasm-bindgen &> /dev/null; then
-    echo "📦 Installing wasm-bindgen-cli..."
-    cargo install wasm-bindgen-cli
-fi
+# Clean previous builds
+echo "🧹 Cleaning previous builds..."
+rm -rf pkg/
+rm -rf target/wasm32-unknown-unknown/
+cargo clean
 
-# Build the WASM module
-echo "🔨 Building WASM module..."
-cargo build --lib --target wasm32-unknown-unknown --release --no-default-features
+# Build with wasm-pack (no default features to exclude server dependencies)
+echo "🔨 Building WASM with wasm-pack..."
+wasm-pack build --target web --out-dir pkg --no-typescript --no-default-features --release
 
-# Get the WASM file
-WASM_FILE="target/wasm32-unknown-unknown/release/sunbay_kernel_service.wasm"
-
-if [ ! -f "$WASM_FILE" ]; then
-    echo "❌ WASM build failed: $WASM_FILE not found"
+if [ $? -ne 0 ]; then
+    echo "❌ Build failed"
     exit 1
 fi
 
-echo "✅ WASM build successful"
 echo ""
-
-# Run wasm-bindgen to generate JavaScript bindings
-echo "🔧 Generating JavaScript bindings..."
-mkdir -p pkg
-wasm-bindgen "$WASM_FILE" \
-    --out-dir pkg \
-    --target web \
-
-
-echo "✅ JavaScript bindings generated in pkg/"
+echo "✅ Build successful!"
+echo "📦 Output directory: pkg/"
 echo ""
+echo "Generated files:"
+ls -lh pkg/
 
-# Copy the WASM file to static directory for publishing
-echo "📦 Copying WASM to static directory..."
-mkdir -p static
-cp pkg/sunbay_kernel_service_bg.wasm static/mock_kernel.wasm
-
-# Display file info
-WASM_SIZE=$(du -h static/mock_kernel.wasm | cut -f1)
-echo "✅ WASM kernel ready: static/mock_kernel.wasm"
-echo "📏 File size: $WASM_SIZE"
 echo ""
-
-# Optional: Optimize with wasm-opt if available
-if command -v wasm-opt &> /dev/null; then
-    echo "🚀 Optimizing WASM with wasm-opt..."
-    wasm-opt -Oz static/mock_kernel.wasm -o static/mock_kernel.wasm
-    OPTIMIZED_SIZE=$(du -h static/mock_kernel.wasm | cut -f1)
-    echo "✅ Optimized size: $OPTIMIZED_SIZE"
-    echo ""
-fi
-
-echo "==========================================="
-echo "✅ Build Complete!"
-echo "==========================================="
-echo "WASM file: static/mock_kernel.wasm"
-echo "JS bindings: pkg/"
+echo "=========================================="
+echo "✅ WASM build complete!"
+echo "=========================================="
+echo ""
+echo "Next steps:"
+echo "1. Copy pkg/sunbay_kernel_service_bg.wasm to backend"
+echo "2. Copy pkg/sunbay_kernel_service.js to backend"
+echo "3. Update backend to serve both files"
 echo ""
