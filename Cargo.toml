@@ -1,0 +1,39 @@
+[package]
+name = "sunbay-kernel-service"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["server"]
+server = ["axum", "tokio", "tower", "tower-http", "config", "tracing-subscriber", "reqwest"]
+console_error_panic_hook = ["dep:console_error_panic_hook"]
+
+[dependencies]
+# Core dependencies (WASM-compatible)
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hmac = "0.12"
+hex = "0.4"
+chrono = { version = "0.4", features = ["serde", "wasmbind"] }
+uuid = { version = "1.0", features = ["v4", "serde", "js"] }
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+
+# WASM bindings
+wasm-bindgen = "0.2"
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+# Server-only dependencies (optional)
+axum = { version = "0.7", features = ["multipart"], optional = true }
+tokio = { version = "1", features = ["full"], optional = true }
+tower = { version = "0.4", optional = true }
+tower-http = { version = "0.5", features = ["fs", "cors", "trace"], optional = true }
+config = { version = "0.14", optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"], optional = true }
+reqwest = { version = "0.11", features = ["json", "multipart"], optional = true }

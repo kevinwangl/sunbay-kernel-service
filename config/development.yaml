@@ -1,0 +1,19 @@
+server:
+  host: 127.0.0.1
+  port: 3000
+
+# Backend URL（必需）
+backend:
+  url: "http://127.0.0.1:8080"
+
+# HMAC 签名密钥（保留用于未来功能）
+signing_key: "dev-secret-key-change-in-production"
+
+# 缓存配置（保留用于未来功能）
+cache:
+  enabled: false
+  max_size_mb: 0
+
+# 日志级别
+logging:
+  level: debug
