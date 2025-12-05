@@ -5,15 +5,23 @@
 
 set -e
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 echo "=========================================="
 echo "Building WASM Kernel with wasm-pack"
 echo "=========================================="
+echo "Working directory: $SCRIPT_DIR"
+echo ""
 
 # Check if wasm-pack is installed
 if ! command -v wasm-pack &> /dev/null; then
     echo "❌ wasm-pack not found. Installing..."
     cargo install wasm-pack
 fi
+
+# Change to script directory
+cd "$SCRIPT_DIR"
 
 # Clean previous builds
 echo "🧹 Cleaning previous builds..."
