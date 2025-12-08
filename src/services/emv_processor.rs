@@ -1,3 +1,4 @@
+use crate::console_log;
 use crate::models::emv::{ApduCommand, ApduResponse, CardData, Tlv};
 
 /// EMV Processor Service
@@ -21,8 +22,8 @@ impl EmvProcessor {
     pub fn select_ppse(&self) -> ApduCommand {
         // SELECT command: CLA=00, INS=A4, P1=04, P2=00
         // Data: PPSE name "2PAY.SYS.DDF01"
+        console_log!("Select_PPSE is is calling");
         let ppse_name = b"2PAY.SYS.DDF01";
-
         ApduCommand::new(0x00, 0xA4, 0x04, 0x00)
             .with_data(ppse_name.to_vec())
             .with_le(0x00)
@@ -30,6 +31,7 @@ impl EmvProcessor {
 
     /// SELECT Application by AID
     pub fn select_application(&self, aid: &[u8]) -> ApduCommand {
+        console_log!("select_application is is calling");
         ApduCommand::new(0x00, 0xA4, 0x04, 0x00)
             .with_data(aid.to_vec())
             .with_le(0x00)
@@ -37,6 +39,7 @@ impl EmvProcessor {
 
     /// READ RECORD command
     pub fn read_record(&self, sfi: u8, record: u8) -> ApduCommand {
+        console_log!("read_record is is calling");
         // P1 = record number, P2 = (SFI << 3) | 0x04
         let p2 = (sfi << 3) | 0x04;
 
@@ -45,6 +48,7 @@ impl EmvProcessor {
 
     /// GET PROCESSING OPTIONS (GPO)
     pub fn get_processing_options(&self, pdol_data: &[u8]) -> ApduCommand {
+        console_log!("get_processing_options is is calling");
         // Build PDOL data with tag 0x83
         let mut data = vec![0x83, pdol_data.len() as u8];
         data.extend_from_slice(pdol_data);
@@ -64,6 +68,7 @@ impl EmvProcessor {
 
     /// Parse card data from TLV response
     pub fn parse_card_data(&self, tlv_data: &[u8], aid: String) -> Result<CardData, String> {
+        console_log!("parse_card_data is is calling");
         let tlvs = Tlv::parse(tlv_data)?;
 
         // Extract PAN (tag 0x5A)
@@ -97,6 +102,7 @@ impl EmvProcessor {
 
     /// Format PAN from BCD encoding
     fn format_pan(&self, bcd_data: &[u8]) -> String {
+        console_log!("format_pan is is calling");
         let hex_str = hex::encode(bcd_data);
         // Remove padding 'F'
         hex_str
@@ -116,6 +122,7 @@ impl EmvProcessor {
 
     /// Validate APDU response
     pub fn validate_response(&self, response: &ApduResponse) -> Result<(), String> {
+        console_log!("validate_response");
         if !response.is_success() {
             return Err(format!("APDU error: SW={:04X}", response.status_word()));
         }
